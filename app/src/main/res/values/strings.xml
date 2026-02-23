@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Crumbs</string>
+    <string name="notification_channel_name">Location Tracking</string>
+    <string name="notification_title">Crumbs</string>
+    <string name="notification_text">Tracking your location</string>
+    <string name="waiting_for_gps">Waiting for GPS signal\u2026</string>
 </resources>
