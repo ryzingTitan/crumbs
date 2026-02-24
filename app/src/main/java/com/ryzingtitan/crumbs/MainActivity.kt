@@ -5,11 +5,14 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +22,13 @@ import com.ryzingtitan.crumbs.location.LocationServiceConnection
 import com.ryzingtitan.crumbs.location.LocationTrackingService
 import com.ryzingtitan.crumbs.ui.LocationScreen
 import com.ryzingtitan.crumbs.ui.theme.CrumbsTheme
+import com.ryzingtitan.crumbs.viewmodel.GpxViewModel
 import com.ryzingtitan.crumbs.viewmodel.LocationViewModel
 
 class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdateListener {
 
     private val viewModel: LocationViewModel by viewModels()
+    private val gpxViewModel: GpxViewModel by viewModels()
     private var locationService: LocationTrackingService? = null
     private var isBound = false
 
@@ -53,6 +58,26 @@ class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdate
         startLocationService()
     }
 
+    @SuppressLint("InvalidFragmentVersionForActivityResult")
+    private val gpxFilePicker: ActivityResultLauncher<Array<String>> = registerForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val fileName = contentResolver
+                .query(uri, null, null, null, null)
+                ?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    cursor.moveToFirst()
+                    if (nameIndex >= 0) cursor.getString(nameIndex) else null
+                }
+                ?: uri.lastPathSegment
+                ?: uri.toString()
+            gpxViewModel.setGpxFile(uri, fileName)
+            viewModel.startNavigation()
+        }
+        // no else: user cancelled, do nothing
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -60,6 +85,16 @@ class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdate
             CrumbsTheme {
                 LocationScreen(
                     viewModel = viewModel,
+                    gpxViewModel = gpxViewModel,
+                    onStartNavigation = {
+                        gpxFilePicker.launch(
+                            arrayOf("application/gpx+xml", "application/octet-stream", "text/xml")
+                        )
+                    },
+                    onEndNavigation = {
+                        viewModel.endNavigation()
+                        gpxViewModel.clearRoute()
+                    },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
