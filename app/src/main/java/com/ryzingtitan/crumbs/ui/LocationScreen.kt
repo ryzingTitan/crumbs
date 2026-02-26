@@ -86,18 +86,22 @@ fun LocationScreen(
 
     LaunchedEffect(location) {
         location?.let { loc ->
-            val cameraOptions = CameraOptions.Builder()
-                .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                .zoom(15.0)
-                .build()
-
             when {
                 !hasInitialLocationBeenCentered -> {
-                    mapViewportState.flyTo(cameraOptions)
+                    mapViewportState.flyTo(
+                        CameraOptions.Builder()
+                            .center(Point.fromLngLat(loc.longitude, loc.latitude))
+                            .zoom(15.0)
+                            .build()
+                    )
                     hasInitialLocationBeenCentered = true
                 }
                 isNavigating -> {
-                    mapViewportState.flyTo(cameraOptions)
+                    mapViewportState.flyTo(
+                        CameraOptions.Builder()
+                            .center(Point.fromLngLat(loc.longitude, loc.latitude))
+                            .build()
+                    )
                 }
             }
         }
@@ -130,20 +134,6 @@ fun LocationScreen(
         ) {
             MapEffect(Unit) { mapView ->
                 mapboxMapRef = mapView.mapboxMap
-                mapView.mapboxMap.getStyle { style ->
-                    style.addSource(rasterDemSource("mapbox-dem") {
-                        url("mapbox://mapbox.mapbox-terrain-dem-v1")
-                        tileSize(512L)
-                    })
-                    val hillshade = hillshadeLayer("hillshade-layer", "mapbox-dem") {}
-                    val firstSymbolLayerId = style.styleLayers
-                        .firstOrNull { it.type == "symbol" }?.id
-                    if (firstSymbolLayerId != null) {
-                        style.addLayerBelow(hillshade, firstSymbolLayerId)
-                    } else {
-                        style.addLayer(hillshade)
-                    }
-                }
                 mapView.location.updateSettings {
                     enabled = true
                     locationPuck = createDefault2DPuck(true)
