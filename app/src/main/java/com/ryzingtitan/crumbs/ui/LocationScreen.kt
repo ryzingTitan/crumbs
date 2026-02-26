@@ -50,21 +50,17 @@ import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportS
 import com.mapbox.maps.extension.compose.style.MapStyle
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.addLayerBelow
-import com.mapbox.maps.extension.style.layers.generated.hillshadeLayer
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
 import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
-import com.mapbox.maps.extension.style.sources.generated.rasterDemSource
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
-
 import com.ryzingtitan.crumbs.R
 import com.ryzingtitan.crumbs.ui.theme.CrumbsTheme
 import com.ryzingtitan.crumbs.viewmodel.GpxViewModel
 import com.ryzingtitan.crumbs.viewmodel.LocationViewModel
-import com.ryzingtitan.crumbs.viewmodel.TrailInfo
 
 @Composable
 fun LocationScreen(
