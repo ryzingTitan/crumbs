@@ -1,13 +1,13 @@
 package com.ryzingtitan.crumbs.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
@@ -110,11 +110,15 @@ fun LocationScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
         MapboxMap(
             modifier = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
-            style = { MapStyle(style = "mapbox://styles/mapbox/outdoors-v12") },
+            style = {
+                MapStyle(
+                    style = "mapbox://styles/mapbox/outdoors-v12"
+                )
+            },
         ) {
             MapEffect(Unit) { mapView ->
                 mapboxMapRef = mapView.mapboxMap
@@ -176,8 +180,7 @@ fun LocationScreen(
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .statusBarsPadding()
-                    .padding(16.dp),
+                    .padding(top = 40.dp, start = 4.dp),
                 shape = MaterialTheme.shapes.small,
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
                 tonalElevation = 4.dp,
@@ -204,7 +207,6 @@ fun LocationScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
                 .padding(16.dp),
             horizontalAlignment = Alignment.End,
         ) {
