@@ -1,19 +1,22 @@
 package com.ryzingtitan.crumbs.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
@@ -60,6 +63,7 @@ import com.ryzingtitan.crumbs.R
 import com.ryzingtitan.crumbs.ui.theme.CrumbsTheme
 import com.ryzingtitan.crumbs.viewmodel.GpxViewModel
 import com.ryzingtitan.crumbs.viewmodel.LocationViewModel
+import com.ryzingtitan.crumbs.viewmodel.TrailInfo
 
 @Composable
 fun LocationScreen(
@@ -71,11 +75,13 @@ fun LocationScreen(
 ) {
     val location by viewModel.locationState.collectAsState()
     val trailPoints by gpxViewModel.trailPoints.collectAsState()
+    val trailInfo by gpxViewModel.trailInfo.collectAsState()
     val isNavigating by viewModel.isNavigating.collectAsState()
     val navigationSummary by viewModel.navigationSummary.collectAsState()
     val mapViewportState = rememberMapViewportState()
     var mapboxMapRef by remember { mutableStateOf<MapboxMap?>(null) }
     var hasInitialLocationBeenCentered by remember { mutableStateOf(false) }
+    var showTrailInfo by remember { mutableStateOf(false) }
 
     LaunchedEffect(location) {
         location?.let { loc ->
@@ -230,18 +236,48 @@ fun LocationScreen(
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
-            ExtendedFloatingActionButton(
-                onClick = { if (isNavigating) onEndNavigation() else onStartNavigation() },
-                icon = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isNavigating && trailInfo != null) {
+                    FloatingActionButton(onClick = { showTrailInfo = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = "Trail Info",
+                        )
+                    }
+                }
+                FloatingActionButton(
+                    onClick = { if (isNavigating) onEndNavigation() else onStartNavigation() },
+                ) {
                     Icon(
                         imageVector = if (isNavigating) Icons.Default.Stop else Icons.Default.Navigation,
-                        contentDescription = null,
+                        contentDescription = if (isNavigating) "End Navigation" else "Start Navigation",
                     )
-                },
-                text = {
-                    Text(if (isNavigating) "End Navigation" else "Start Navigation")
-                },
-            )
+                }
+            }
+        }
+
+        if (showTrailInfo) {
+            trailInfo?.let { info ->
+                AlertDialog(
+                    onDismissRequest = { showTrailInfo = false },
+                    title = { Text(info.name ?: "Trail Info") },
+                    text = {
+                        Column {
+                            Text("Length: ${"%.2f".format(info.lengthMeters / 1000.0)} km")
+                            Text("Elevation Gain: ${"%.0f".format(info.elevationGainMeters)} m")
+                            Text("Elevation Loss: ${"%.0f".format(info.elevationLossMeters)} m")
+                            Text("Est. Time: ${formatDuration((info.estimatedTimeMinutes * 60_000L))}")
+                            Text("Difficulty: ${info.difficulty}")
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showTrailInfo = false }) { Text("OK") }
+                    },
+                )
+            }
         }
 
         navigationSummary?.let { summary ->
