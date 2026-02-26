@@ -128,7 +128,7 @@ fun LocationScreen(
             scaleBar = { ScaleBar(isMetricUnit = false) },
             style = {
                 MapStyle(
-                    style = "mapbox://styles/mapbox/outdoors-v12"
+                    style = "mapbox://styles/kstoltzfus/cmm41n5tx006101s2dwhj8ph3"
                 )
             },
         ) {
