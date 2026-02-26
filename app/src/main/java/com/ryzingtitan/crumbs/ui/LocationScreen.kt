@@ -59,6 +59,7 @@ import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.maps.extension.style.sources.generated.rasterDemSource
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
+
 import com.ryzingtitan.crumbs.R
 import com.ryzingtitan.crumbs.ui.theme.CrumbsTheme
 import com.ryzingtitan.crumbs.viewmodel.GpxViewModel
@@ -120,6 +121,7 @@ fun LocationScreen(
         MapboxMap(
             modifier = Modifier.fillMaxSize(),
             mapViewportState = mapViewportState,
+            scaleBar = { ScaleBar(isMetricUnit = false) },
             style = {
                 MapStyle(
                     style = "mapbox://styles/mapbox/outdoors-v12"
@@ -192,7 +194,7 @@ fun LocationScreen(
                 tonalElevation = 4.dp,
             ) {
                 Text(
-                    text = "${"%.0f".format(loc.altitude)} m",
+                    text = "${"%.0f".format(loc.altitude * 3.28084)} ft",
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -266,9 +268,9 @@ fun LocationScreen(
                     title = { Text(info.name ?: "Trail Info") },
                     text = {
                         Column {
-                            Text("Length: ${"%.2f".format(info.lengthMeters / 1000.0)} km")
-                            Text("Elevation Gain: ${"%.0f".format(info.elevationGainMeters)} m")
-                            Text("Elevation Loss: ${"%.0f".format(info.elevationLossMeters)} m")
+                            Text("Length: ${"%.2f".format(info.lengthMeters * 0.000621371)} mi")
+                            Text("Elevation Gain: ${"%.0f".format(info.elevationGainMeters * 3.28084)} ft")
+                            Text("Elevation Loss: ${"%.0f".format(info.elevationLossMeters * 3.28084)} ft")
                             Text("Est. Time: ${formatDuration((info.estimatedTimeMinutes * 60_000L))}")
                             Text("Difficulty: ${info.difficulty}")
                         }
@@ -287,10 +289,10 @@ fun LocationScreen(
                 text = {
                     Column {
                         Text("Duration: ${formatDuration(summary.durationMs)}")
-                        Text("Distance: ${"%.2f".format(summary.distanceMeters / 1000.0)} km")
+                        Text("Distance: ${"%.2f".format(summary.distanceMeters * 0.000621371)} mi")
                         val sign = if (summary.elevationChangeMeters >= 0) "+" else ""
-                        Text("Elevation: $sign${"%.0f".format(summary.elevationChangeMeters)} m")
-                        Text("Avg Speed: ${"%.1f".format(summary.averageSpeedKmh)} km/h")
+                        Text("Elevation: $sign${"%.0f".format(summary.elevationChangeMeters * 3.28084)} ft")
+                        Text("Avg Speed: ${"%.1f".format(summary.averageSpeedMph)} mph")
                     }
                 },
                 confirmButton = {

@@ -10,7 +10,7 @@ data class NavigationSummary(
     val durationMs: Long,
     val distanceMeters: Double,
     val elevationChangeMeters: Double,
-    val averageSpeedKmh: Double,
+    val averageSpeedMph: Double,
 )
 
 class LocationViewModel : ViewModel() {
@@ -54,8 +54,8 @@ class LocationViewModel : ViewModel() {
             0.0
         }
 
-        val averageSpeedKmh = if (durationMs > 0) {
-            (totalDistanceMeters / 1000.0) / (durationMs / 3_600_000.0)
+        val averageSpeedMph = if (durationMs > 0) {
+            (totalDistanceMeters / 1609.344) / (durationMs / 3_600_000.0)
         } else {
             0.0
         }
@@ -64,7 +64,7 @@ class LocationViewModel : ViewModel() {
             durationMs = durationMs,
             distanceMeters = totalDistanceMeters,
             elevationChangeMeters = elevationChangeMeters,
-            averageSpeedKmh = averageSpeedKmh,
+            averageSpeedMph = averageSpeedMph,
         )
         _isNavigating.value = false
         navigationStartTime = null
