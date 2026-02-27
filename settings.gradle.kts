@@ -40,3 +40,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Crumbs"
 include(":app")
+include(":wear")

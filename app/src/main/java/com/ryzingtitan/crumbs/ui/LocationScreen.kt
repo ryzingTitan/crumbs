@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -68,6 +69,7 @@ fun LocationScreen(
     gpxViewModel: GpxViewModel = viewModel(),
     onStartNavigation: () -> Unit = {},
     onEndNavigation: () -> Unit = {},
+    onSendToWatch: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val location by viewModel.locationState.collectAsState()
@@ -235,6 +237,12 @@ fun LocationScreen(
                             contentDescription = "Trail Info",
                         )
                     }
+                    FloatingActionButton(onClick = onSendToWatch) {
+                        Icon(
+                            imageVector = Icons.Default.Watch,
+                            contentDescription = "Send to Watch",
+                        )
+                    }
                 }
                 FloatingActionButton(
                     onClick = { if (isNavigating) onEndNavigation() else onStartNavigation() },
@@ -288,6 +296,7 @@ fun LocationScreen(
                 },
             )
         }
+
     }
 }
 

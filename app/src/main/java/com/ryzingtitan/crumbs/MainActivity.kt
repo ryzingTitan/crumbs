@@ -18,12 +18,14 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.ryzingtitan.crumbs.location.LocationServiceConnection
 import com.ryzingtitan.crumbs.location.LocationTrackingService
 import com.ryzingtitan.crumbs.ui.LocationScreen
 import com.ryzingtitan.crumbs.ui.theme.CrumbsTheme
 import com.ryzingtitan.crumbs.viewmodel.GpxViewModel
 import com.ryzingtitan.crumbs.viewmodel.LocationViewModel
+import com.ryzingtitan.crumbs.wearable.WearRouteSender
 
 class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdateListener {
 
@@ -94,6 +96,16 @@ class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdate
                     onEndNavigation = {
                         viewModel.endNavigation()
                         gpxViewModel.clearRoute()
+                        WearRouteSender.clearRoute(applicationContext, lifecycleScope)
+                    },
+                    onSendToWatch = {
+                        val info = gpxViewModel.trailInfo.value ?: return@LocationScreen
+                        WearRouteSender.sendRoute(
+                            applicationContext,
+                            info,
+                            gpxViewModel.trailPoints.value,
+                            lifecycleScope,
+                        )
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
