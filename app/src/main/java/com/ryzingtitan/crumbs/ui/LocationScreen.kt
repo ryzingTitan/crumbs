@@ -59,6 +59,7 @@ import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.ryzingtitan.crumbs.R
@@ -145,6 +146,8 @@ fun LocationScreen(
                 mapView.location.updateSettings {
                     enabled = true
                     locationPuck = createDefault2DPuck(true)
+                    puckBearingEnabled = true
+                    puckBearing = PuckBearing.HEADING
                 }
                 mapView.gestures.addOnMoveListener(object : OnMoveListener {
                     override fun onMoveBegin(detector: MoveGestureDetector) {

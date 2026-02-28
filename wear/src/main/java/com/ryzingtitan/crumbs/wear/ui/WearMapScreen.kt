@@ -64,6 +64,7 @@ import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
 import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
+import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.ryzingtitan.crumbs.wear.R
@@ -134,6 +135,8 @@ fun WearMapScreen(
                 mapView.location.updateSettings {
                     enabled = true
                     locationPuck = createDefault2DPuck(true)
+                    puckBearingEnabled = true
+                    puckBearing = PuckBearing.HEADING
                 }
                 mapView.gestures.addOnMoveListener(object : OnMoveListener {
                     override fun onMoveBegin(detector: MoveGestureDetector) {
@@ -151,6 +154,7 @@ fun WearMapScreen(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
                                 .zoom(17.0)
+                                .bearing(0.0)
                                 .build()
                         )
                     }
@@ -238,6 +242,7 @@ fun WearMapScreen(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
                                 .zoom(17.0)
+                                .bearing(0.0)
                                 .build()
                         )
                     }
