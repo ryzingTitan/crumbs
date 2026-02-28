@@ -2,7 +2,6 @@ package com.ryzingtitan.crumbs.wear.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -63,13 +61,16 @@ import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.android.gestures.MoveGestureDetector
+import com.mapbox.maps.plugin.gestures.OnMoveListener
+import com.mapbox.maps.plugin.gestures.gestures
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.ryzingtitan.crumbs.wear.R
 import com.ryzingtitan.crumbs.wear.viewmodel.WearNavigationViewModel
 import kotlinx.coroutines.delay
 
-private const val MAP_STYLE = "mapbox://styles/kstoltzfus/cmm41n5tx006101s2dwhj8ph3"
+private const val MAP_STYLE = "mapbox://styles/mapbox/dark-v10"
 private const val TRAIL_SOURCE_ID = "wear-trail-source"
 private const val TRAIL_LAYER_ID = "wear-trail-layer"
 
@@ -91,6 +92,8 @@ fun WearMapScreen(
 
     var elapsedMs by remember { mutableLongStateOf(viewModel.elapsedMs) }
     var showAttribution by remember { mutableStateOf(false) }
+    val isFollowingUserState = remember { mutableStateOf(true) }
+    var isFollowingUser by isFollowingUserState
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -108,6 +111,7 @@ fun WearMapScreen(
     }
 
     LaunchedEffect(isNavigating) {
+        if (isNavigating) isFollowingUser = true
         while (isNavigating) {
             elapsedMs = viewModel.elapsedMs
             delay(1000L)
@@ -115,13 +119,7 @@ fun WearMapScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(isNavigating) {
-                if (isNavigating) {
-                    detectHorizontalDragGestures { change, _ -> change.consume() }
-                }
-            },
+        modifier = Modifier.fillMaxSize(),
     ) {
         MapboxMap(
             modifier = Modifier.fillMaxSize(),
@@ -137,16 +135,25 @@ fun WearMapScreen(
                     enabled = true
                     locationPuck = createDefault2DPuck(true)
                 }
+                mapView.gestures.addOnMoveListener(object : OnMoveListener {
+                    override fun onMoveBegin(detector: MoveGestureDetector) {
+                        isFollowingUserState.value = false
+                    }
+                    override fun onMove(detector: MoveGestureDetector): Boolean = false
+                    override fun onMoveEnd(detector: MoveGestureDetector) {}
+                })
             }
 
             MapEffect(currentLocation) { _ ->
-                currentLocation?.let { loc ->
-                    mapViewportState.flyTo(
-                        CameraOptions.Builder()
-                            .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                            .zoom(15.0)
-                            .build()
-                    )
+                if (isFollowingUser) {
+                    currentLocation?.let { loc ->
+                        mapViewportState.flyTo(
+                            CameraOptions.Builder()
+                                .center(Point.fromLngLat(loc.longitude, loc.latitude))
+                                .zoom(17.0)
+                                .build()
+                        )
+                    }
                 }
             }
 
@@ -225,11 +232,12 @@ fun WearMapScreen(
             // Recenter — just above center
             Button(
                 onClick = {
+                    isFollowingUser = true
                     currentLocation?.let { loc ->
                         mapViewportState.flyTo(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                                .zoom(15.0)
+                                .zoom(17.0)
                                 .build()
                         )
                     }
@@ -280,17 +288,6 @@ fun WearMapScreen(
                     modifier = Modifier.size(16.dp),
                 )
             }
-//            Icon(
-//                imageVector = Icons.Default.Info,
-//                contentDescription = "Map attribution",
-//                tint = Color.White.copy(alpha = 0.7f),
-//                modifier = Modifier
-//                    .size(14.dp)
-//                    .clickable(
-//                        indication = null,
-//                        interactionSource = remember { MutableInteractionSource() },
-//                    ) { showAttribution = true },
-//            )
         }
 
         if (showAttribution) {

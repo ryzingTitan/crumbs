@@ -31,6 +31,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mapbox.android.gestures.MoveGestureDetector
+import com.mapbox.maps.plugin.gestures.OnMoveListener
+import com.mapbox.maps.plugin.gestures.gestures
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -81,6 +84,12 @@ fun LocationScreen(
     var mapboxMapRef by remember { mutableStateOf<MapboxMap?>(null) }
     var hasInitialLocationBeenCentered by remember { mutableStateOf(false) }
     var showTrailInfo by remember { mutableStateOf(false) }
+    val isFollowingUserState = remember { mutableStateOf(true) }
+    var isFollowingUser by isFollowingUserState
+
+    LaunchedEffect(isNavigating) {
+        if (isNavigating) isFollowingUser = true
+    }
 
     LaunchedEffect(location) {
         location?.let { loc ->
@@ -94,7 +103,7 @@ fun LocationScreen(
                     )
                     hasInitialLocationBeenCentered = true
                 }
-                isNavigating -> {
+                isNavigating && isFollowingUser -> {
                     mapViewportState.flyTo(
                         CameraOptions.Builder()
                             .center(Point.fromLngLat(loc.longitude, loc.latitude))
@@ -110,6 +119,7 @@ fun LocationScreen(
             mapboxMapRef?.let { map ->
                 val camera = map.cameraForCoordinates(
                     trailPoints,
+                    CameraOptions.Builder().build(),
                     EdgeInsets(100.0, 100.0, 200.0, 100.0),
                     null,
                     null,
@@ -136,6 +146,13 @@ fun LocationScreen(
                     enabled = true
                     locationPuck = createDefault2DPuck(true)
                 }
+                mapView.gestures.addOnMoveListener(object : OnMoveListener {
+                    override fun onMoveBegin(detector: MoveGestureDetector) {
+                        isFollowingUserState.value = false
+                    }
+                    override fun onMove(detector: MoveGestureDetector): Boolean = false
+                    override fun onMoveEnd(detector: MoveGestureDetector) {}
+                })
             }
 
             MapEffect(trailPoints) { mapView ->
@@ -208,11 +225,12 @@ fun LocationScreen(
         ) {
             SmallFloatingActionButton(
                 onClick = {
+                    isFollowingUser = true
                     location?.let { loc ->
                         mapViewportState.flyTo(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                                .zoom(15.0)
+                                .zoom(17.0)
                                 .build(),
                         )
                     }
