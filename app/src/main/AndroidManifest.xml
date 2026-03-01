@@ -36,19 +36,6 @@
             android:name=".location.LocationTrackingService"
             android:exported="false"
             android:foregroundServiceType="location" />
-
-        <service
-            android:name=".wearable.WearMessageListenerService"
-            android:exported="true"
-            android:permission="com.google.android.gms.permission.BIND_LISTENER">
-            <intent-filter>
-                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
-                <data
-                    android:scheme="wear"
-                    android:host="*"
-                    android:pathPrefix="/crumbs/" />
-            </intent-filter>
-        </service>
     </application>
 
 </manifest>

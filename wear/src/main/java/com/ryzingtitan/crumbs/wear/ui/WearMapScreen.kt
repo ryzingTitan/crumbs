@@ -1,14 +1,11 @@
 package com.ryzingtitan.crumbs.wear.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -21,30 +18,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.foundation.CurvedTextStyle
 import androidx.wear.compose.foundation.basicCurvedText
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import com.google.android.gms.wearable.Wearable
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import androidx.wear.compose.material.Button
 import androidx.wear.compose.material.ButtonDefaults
-import androidx.wear.compose.material.Chip
-import androidx.wear.compose.material.ChipDefaults
 import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.ListHeader
-import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
+import com.mapbox.android.gestures.MoveGestureDetector
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
@@ -61,10 +48,9 @@ import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
-import com.mapbox.android.gestures.MoveGestureDetector
+import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
-import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.locationcomponent.createDefault2DPuck
 import com.mapbox.maps.plugin.locationcomponent.location
 import com.ryzingtitan.crumbs.wear.R
@@ -92,24 +78,8 @@ fun WearMapScreen(
     } ?: emptyList()
 
     var elapsedMs by remember { mutableLongStateOf(viewModel.elapsedMs) }
-    var showAttribution by remember { mutableStateOf(false) }
     val isFollowingUserState = remember { mutableStateOf(true) }
     var isFollowingUser by isFollowingUserState
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
-    fun sendUrlToPhone(url: String) {
-        coroutineScope.launch(Dispatchers.IO) {
-            runCatching {
-                val nodes = Wearable.getNodeClient(context).connectedNodes.await()
-                nodes.firstOrNull()?.id?.let { nodeId ->
-                    Wearable.getMessageClient(context)
-                        .sendMessage(nodeId, "/crumbs/open-url", url.toByteArray(Charsets.UTF_8))
-                        .await()
-                }
-            }
-        }
-    }
 
     LaunchedEffect(isNavigating) {
         if (isNavigating) isFollowingUser = true
@@ -282,75 +252,6 @@ fun WearMapScreen(
                 contentDescription = "Mapbox",
                 modifier = Modifier.size(40.dp),
             )
-            Button(
-                onClick = { showAttribution = true },
-                modifier = Modifier.size(28.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.Black.copy(alpha = 0.6f)),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Map attribution",
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-
-        if (showAttribution) {
-            ScalingLazyColumn(modifier = Modifier.fillMaxSize()) {
-                item { ListHeader { Text("Map Attribution") } }
-                item {
-                    Chip(
-                        label = { Text("© Mapbox") },
-                        onClick = {
-                            showAttribution = false
-                            sendUrlToPhone("https://www.mapbox.com/about/maps/")
-                        },
-                        colors = ChipDefaults.primaryChipColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                item {
-                    Chip(
-                        label = { Text("© OpenStreetMap") },
-                        onClick = {
-                            showAttribution = false
-                            sendUrlToPhone("https://www.openstreetmap.org/copyright")
-                        },
-                        colors = ChipDefaults.primaryChipColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                item {
-                    Chip(
-                        label = { Text("Improve This Map") },
-                        onClick = {
-                            showAttribution = false
-                            sendUrlToPhone("https://apps.mapbox.com/feedback/")
-                        },
-                        colors = ChipDefaults.primaryChipColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                item {
-                    Chip(
-                        label = { Text("Mapbox Telemetry Opt-out") },
-                        onClick = {
-                            showAttribution = false
-                            sendUrlToPhone("https://www.mapbox.com/telemetry/")
-                        },
-                        colors = ChipDefaults.primaryChipColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                item {
-                    Chip(
-                        label = { Text("Back") },
-                        onClick = { showAttribution = false },
-                        colors = ChipDefaults.secondaryChipColors(),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
         }
     }
 }
