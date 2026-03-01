@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Stop
@@ -45,6 +46,7 @@ import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
+import com.mapbox.maps.CameraBoundsOptions
 import com.mapbox.maps.CameraOptions
 import com.mapbox.maps.EdgeInsets
 import com.mapbox.maps.MapboxMap
@@ -87,6 +89,7 @@ fun LocationScreen(
     var showTrailInfo by remember { mutableStateOf(false) }
     val isFollowingUserState = remember { mutableStateOf(true) }
     var isFollowingUser by isFollowingUserState
+    var selectedMapStyle by remember { mutableStateOf(MapStyleType.USGS_TOPO) }
 
     LaunchedEffect(isNavigating) {
         if (isNavigating) isFollowingUser = true
@@ -99,7 +102,7 @@ fun LocationScreen(
                     mapViewportState.flyTo(
                         CameraOptions.Builder()
                             .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                            .zoom(15.0)
+                            .zoom(16.0)
                             .build()
                     )
                     hasInitialLocationBeenCentered = true
@@ -137,7 +140,10 @@ fun LocationScreen(
             scaleBar = { ScaleBar(isMetricUnit = false) },
             style = {
                 MapStyle(
-                    style = "mapbox://styles/kstoltzfus/cmm41n5tx006101s2dwhj8ph3"
+                    style = if (selectedMapStyle == MapStyleType.USGS_TOPO)
+                        USGS_IMAGERY_TOPO_STYLE
+                    else
+                        MAPBOX_CUSTOM_STYLE
                 )
             },
         ) {
@@ -158,7 +164,16 @@ fun LocationScreen(
                 })
             }
 
-            MapEffect(trailPoints) { mapView ->
+            MapEffect(selectedMapStyle) { mapView ->
+                val maxZoom = if (selectedMapStyle == MapStyleType.USGS_TOPO) 16.0 else 22.0
+                mapView.mapboxMap.setBounds(
+                    CameraBoundsOptions.Builder()
+                        .maxZoom(maxZoom)
+                        .build()
+                )
+            }
+
+            MapEffect(trailPoints, selectedMapStyle) { mapView ->
                 if (trailPoints.size >= 2) {
                     mapView.mapboxMap.getStyle { style ->
                         if (style.styleLayerExists("gpx-trail-layer"))
@@ -228,12 +243,28 @@ fun LocationScreen(
         ) {
             SmallFloatingActionButton(
                 onClick = {
+                    selectedMapStyle = if (selectedMapStyle == MapStyleType.USGS_TOPO)
+                        MapStyleType.MAPBOX_CUSTOM
+                    else
+                        MapStyleType.USGS_TOPO
+                },
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Layers,
+                    contentDescription = "Switch map style",
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            SmallFloatingActionButton(
+                onClick = {
                     isFollowingUser = true
                     location?.let { loc ->
                         mapViewportState.flyTo(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                                .zoom(17.0)
+                                .zoom(16.0)
                                 .build(),
                         )
                     }
@@ -320,6 +351,34 @@ fun LocationScreen(
 
     }
 }
+
+private enum class MapStyleType { USGS_TOPO, MAPBOX_CUSTOM }
+
+private const val MAPBOX_CUSTOM_STYLE = "mapbox://styles/kstoltzfus/cmm41n5tx006101s2dwhj8ph3"
+
+private val USGS_IMAGERY_TOPO_STYLE = """
+{
+  "version": 8,
+  "sources": {
+    "usgs-topo-source": {
+      "type": "raster",
+      "tiles": [
+        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}"
+      ],
+      "tileSize": 256,
+      "maxzoom": 20,
+      "attribution": "Map services and data available from U.S. Geological Survey, National Geospatial Program"
+    }
+  },
+  "layers": [
+    {
+      "id": "usgs-topo-layer",
+      "type": "raster",
+      "source": "usgs-topo-source"
+    }
+  ]
+}
+""".trimIndent()
 
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = durationMs / 1000
