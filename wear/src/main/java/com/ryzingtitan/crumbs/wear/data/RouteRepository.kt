@@ -11,6 +11,9 @@ object RouteRepository {
     private val _isNavigating = MutableStateFlow(false)
     val isNavigating: StateFlow<Boolean> = _isNavigating.asStateFlow()
 
+    private val _savedRouteNames = MutableStateFlow<List<String>>(emptyList())
+    val savedRouteNames: StateFlow<List<String>> = _savedRouteNames.asStateFlow()
+
     fun setRoute(payload: RoutePayload) {
         _routePayload.value = payload
     }
@@ -22,5 +25,13 @@ object RouteRepository {
     fun clearRoute() {
         _routePayload.value = null
         _isNavigating.value = false
+    }
+
+    fun addSavedRoute(name: String) {
+        _savedRouteNames.value = (_savedRouteNames.value + name).distinct()
+    }
+
+    fun setSavedRoutes(names: List<String>) {
+        _savedRouteNames.value = names
     }
 }

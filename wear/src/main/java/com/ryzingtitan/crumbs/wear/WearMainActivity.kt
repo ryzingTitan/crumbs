@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,6 +39,7 @@ import com.ryzingtitan.crumbs.wear.viewmodel.WearNavigationViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.File
 
 private const val ROUTE_WAITING = "waiting"
 private const val ROUTE_MAP = "map"
@@ -58,12 +60,18 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
         onDisconnected = { locationService = null },
     )
 
+    private val notificationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        startLocationService()
+    }
+
     private val locationPermissionRequest = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { permissions ->
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (granted) startLocationService()
+        if (granted) requestNotificationPermission()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +80,16 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
         // Late-join: query DataClient for an already-delivered route
         lifecycleScope.launch(Dispatchers.IO) {
             restoreRouteFromDataClient()
+        }
+
+        // Populate saved route list from disk
+        val routesDir = File(filesDir, "routes")
+        if (routesDir.exists()) {
+            val names = routesDir.listFiles()
+                ?.filter { it.extension == "json" }
+                ?.map { it.nameWithoutExtension }
+                ?: emptyList()
+            RouteRepository.setSavedRoutes(names)
         }
 
         requestLocationPermissions()
@@ -174,7 +192,7 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
             this, Manifest.permission.ACCESS_COARSE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
         if (fineGranted || coarseGranted) {
-            startLocationService()
+            requestNotificationPermission()
         } else {
             locationPermissionRequest.launch(
                 arrayOf(
@@ -183,6 +201,19 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
                 )
             )
         }
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        startLocationService()
     }
 
     private fun startLocationService() {
