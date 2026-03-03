@@ -1,7 +1,6 @@
 package com.ryzingtitan.crumbs.wearable
 
 import android.content.Context
-import android.net.Uri
 import com.google.android.gms.wearable.Asset
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
@@ -31,27 +30,6 @@ object WearRouteSender {
                 }.asPutDataRequest().setUrgent()
 
                 Wearable.getDataClient(context).putDataItem(request).await()
-
-                val statusRequest = PutDataMapRequest.create("/crumbs/status").apply {
-                    dataMap.putBoolean("navigating", true)
-                }.asPutDataRequest().setUrgent()
-
-                Wearable.getDataClient(context).putDataItem(statusRequest).await()
-            }
-        }
-    }
-
-    fun clearRoute(context: Context, scope: CoroutineScope) {
-        scope.launch {
-            runCatching {
-                val statusRequest = PutDataMapRequest.create("/crumbs/status").apply {
-                    dataMap.putBoolean("navigating", false)
-                }.asPutDataRequest().setUrgent()
-                Wearable.getDataClient(context).putDataItem(statusRequest).await()
-
-                Wearable.getDataClient(context)
-                    .deleteDataItems(Uri.parse("wear://*/crumbs/route"))
-                    .await()
             }
         }
     }

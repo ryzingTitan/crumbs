@@ -96,7 +96,6 @@ class MainActivity : ComponentActivity(), LocationTrackingService.LocationUpdate
                     onEndNavigation = {
                         viewModel.endNavigation()
                         gpxViewModel.clearRoute()
-                        WearRouteSender.clearRoute(applicationContext, lifecycleScope)
                     },
                     onSendToWatch = {
                         val info = gpxViewModel.trailInfo.value ?: return@LocationScreen
