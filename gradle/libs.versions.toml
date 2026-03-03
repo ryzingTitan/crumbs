@@ -42,6 +42,7 @@ mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 org-json = { group = "org.json", name = "json", version = "20240303" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version = "1.6.1" }
 wear-compose-material   = { group = "androidx.wear.compose", name = "compose-material",   version.ref = "wearCompose" }
 wear-compose-foundation = { group = "androidx.wear.compose", name = "compose-foundation",  version.ref = "wearCompose" }
 wear-compose-navigation = { group = "androidx.wear.compose", name = "compose-navigation",  version.ref = "wearCompose" }
