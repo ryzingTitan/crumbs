@@ -24,6 +24,7 @@ import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import com.google.android.gms.wearable.DataClient
+import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
 import com.ryzingtitan.crumbs.wear.data.RoutePayload
@@ -32,16 +33,17 @@ import com.ryzingtitan.crumbs.wear.location.WearLocationService
 import com.ryzingtitan.crumbs.wear.location.WearLocationServiceConnection
 import com.ryzingtitan.crumbs.wear.ui.WearInfoScreen
 import com.ryzingtitan.crumbs.wear.ui.WearMapScreen
+import com.ryzingtitan.crumbs.wear.ui.WearRouteListScreen
 import com.ryzingtitan.crumbs.wear.ui.WearSummaryScreen
-import com.ryzingtitan.crumbs.wear.ui.WearWaitingScreen
 import com.ryzingtitan.crumbs.wear.ui.theme.CrumbsWearTheme
 import com.ryzingtitan.crumbs.wear.viewmodel.WearNavigationViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.io.File
 
-private const val ROUTE_WAITING = "waiting"
+private const val ROUTE_LIST = "list"
 private const val ROUTE_MAP = "map"
 private const val ROUTE_INFO = "info"
 private const val ROUTE_SUMMARY = "summary"
@@ -51,6 +53,31 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
     private val viewModel: WearNavigationViewModel by viewModels()
     private var locationService: WearLocationService? = null
     private var isBound = false
+
+    private val dataChangedListener = DataClient.OnDataChangedListener { dataEvents ->
+        for (event in dataEvents) {
+            if (event.dataItem.uri.path == "/crumbs/route" &&
+                event.type == DataEvent.TYPE_CHANGED) {
+                val asset = DataMapItem.fromDataItem(event.dataItem)
+                    .dataMap.getAsset("route") ?: continue
+                lifecycleScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        val response = Wearable.getDataClient(this@WearMainActivity)
+                            .getFdForAsset(asset).await()
+                        val json = response.inputStream.use { it.bufferedReader().readText() }
+                        val payload = RoutePayload.fromJson(json)
+                        val sanitized = sanitizeFilename(payload.name)
+                        val file = File(File(filesDir, "routes"), "$sanitized.json")
+                        if (!file.exists()) {
+                            file.parentFile?.mkdirs()
+                            file.writeText(json)
+                        }
+                        RouteRepository.addSavedRoute(sanitized)
+                    }
+                }
+            }
+        }
+    }
 
     private val serviceConnection = WearLocationServiceConnection(
         onConnected = { service ->
@@ -108,24 +135,33 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
 
                 SwipeDismissableNavHost(
                     navController = navController,
-                    startDestination = ROUTE_WAITING,
+                    startDestination = ROUTE_LIST,
                     userSwipeEnabled = !isOnMapScreen,
                 ) {
-                    composable(ROUTE_WAITING) {
-                        WearWaitingScreen()
-
-                        // Auto-navigate to map when route arrives
-                        androidx.compose.runtime.LaunchedEffect(Unit) {
-                            RouteRepository.routePayload.collect { payload ->
-                                if (payload != null &&
-                                    navController.currentDestination?.route == ROUTE_WAITING
-                                ) {
+                    composable(ROUTE_LIST) {
+                        WearRouteListScreen(
+                            viewModel = viewModel,
+                            onRouteSelected = { name ->
+                                loadSavedRoute(name) {
                                     navController.navigate(ROUTE_MAP) {
-                                        popUpTo(ROUTE_WAITING) { inclusive = true }
+                                        popUpTo(ROUTE_LIST) { inclusive = true }
                                     }
                                 }
-                            }
-                        }
+                            },
+                            onRouteDeleted = { name -> deleteRoute(name) },
+                            onRefresh = {
+                                withContext(Dispatchers.IO) {
+                                    val routesDir = File(filesDir, "routes")
+                                    if (routesDir.exists()) {
+                                        val names = routesDir.listFiles()
+                                            ?.filter { it.extension == "json" }
+                                            ?.map { it.nameWithoutExtension }
+                                            ?: emptyList()
+                                        RouteRepository.setSavedRoutes(names)
+                                    }
+                                }
+                            },
+                        )
                     }
 
                     composable(ROUTE_MAP) {
@@ -159,7 +195,7 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
                             viewModel = viewModel,
                             onDone = {
                                 viewModel.dismissSummary()
-                                navController.navigate(ROUTE_WAITING) {
+                                navController.navigate(ROUTE_LIST) {
                                     popUpTo(0) { inclusive = true }
                                 }
                             },
@@ -168,6 +204,16 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Wearable.getDataClient(this).addListener(dataChangedListener)
+    }
+
+    override fun onStop() {
+        Wearable.getDataClient(this).removeListener(dataChangedListener)
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -222,6 +268,29 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
         isBound = bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
+    private fun loadSavedRoute(name: String, onSuccess: () -> Unit) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                val file = File(File(filesDir, "routes"), "$name.json")
+                val payload = RoutePayload.fromJson(file.readText())
+                RouteRepository.setRoute(payload)
+                RouteRepository.setNavigating(true)
+            }.onSuccess {
+                launch(Dispatchers.Main) { onSuccess() }
+            }
+        }
+    }
+
+    private fun deleteRoute(name: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            File(File(filesDir, "routes"), "$name.json").delete()
+            RouteRepository.removeSavedRoute(name)
+        }
+    }
+
+    private fun sanitizeFilename(name: String): String =
+        name.replace(Regex("[^a-zA-Z0-9._\\-]"), "_").take(100)
+
     private suspend fun restoreRouteFromDataClient() {
         runCatching {
             val dataClient: DataClient = Wearable.getDataClient(this@WearMainActivity)
@@ -236,8 +305,13 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
                         dataClient.getFdForAsset(asset).await()
                     val json = response.inputStream.use { it.bufferedReader().readText() }
                     val payload = RoutePayload.fromJson(json)
-                    RouteRepository.setRoute(payload)
-                    RouteRepository.setNavigating(true)
+                    val sanitized = sanitizeFilename(payload.name)
+                    val file = File(File(filesDir, "routes"), "$sanitized.json")
+                    if (!file.exists()) {
+                        file.parentFile?.mkdirs()
+                        file.writeText(json)
+                        RouteRepository.addSavedRoute(sanitized)
+                    }
                 }
             }
             items.release()

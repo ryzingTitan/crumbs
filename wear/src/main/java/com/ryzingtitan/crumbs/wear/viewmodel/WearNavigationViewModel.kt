@@ -26,6 +26,9 @@ class WearNavigationViewModel : ViewModel() {
     val isNavigating: StateFlow<Boolean> = RouteRepository.isNavigating
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    val savedRouteNames: StateFlow<List<String>> = RouteRepository.savedRouteNames
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private val _currentLocation = MutableStateFlow<Location?>(null)
     val currentLocation: StateFlow<Location?> = _currentLocation.asStateFlow()
 

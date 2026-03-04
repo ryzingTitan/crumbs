@@ -3,6 +3,7 @@ package com.ryzingtitan.crumbs.wear.data
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 object RouteRepository {
     private val _routePayload = MutableStateFlow<RoutePayload?>(null)
@@ -28,10 +29,14 @@ object RouteRepository {
     }
 
     fun addSavedRoute(name: String) {
-        _savedRouteNames.value = (_savedRouteNames.value + name).distinct()
+        _savedRouteNames.update { (it + name).distinct() }
     }
 
     fun setSavedRoutes(names: List<String>) {
         _savedRouteNames.value = names
+    }
+
+    fun removeSavedRoute(name: String) {
+        _savedRouteNames.value = _savedRouteNames.value.filter { it != name }
     }
 }
