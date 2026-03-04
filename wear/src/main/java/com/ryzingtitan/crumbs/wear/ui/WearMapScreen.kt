@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MyLocation
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -41,13 +43,17 @@ import com.mapbox.maps.extension.compose.MapEffect
 import com.mapbox.maps.extension.compose.MapboxMap
 import com.mapbox.maps.extension.compose.animation.viewport.rememberMapViewportState
 import com.mapbox.maps.extension.compose.style.MapStyle
+import com.mapbox.maps.extension.style.expressions.dsl.generated.interpolate
+import com.mapbox.maps.extension.style.expressions.dsl.generated.rgba
 import com.mapbox.maps.extension.style.layers.addLayer
 import com.mapbox.maps.extension.style.layers.addLayerBelow
 import com.mapbox.maps.extension.style.layers.generated.lineLayer
+import com.mapbox.maps.extension.style.layers.generated.rasterLayer
 import com.mapbox.maps.extension.style.layers.properties.generated.LineCap
 import com.mapbox.maps.extension.style.layers.properties.generated.LineJoin
 import com.mapbox.maps.extension.style.sources.addSource
 import com.mapbox.maps.extension.style.sources.generated.geoJsonSource
+import com.mapbox.maps.extension.style.sources.generated.rasterSource
 import com.mapbox.maps.plugin.PuckBearing
 import com.mapbox.maps.plugin.gestures.OnMoveListener
 import com.mapbox.maps.plugin.gestures.gestures
@@ -57,7 +63,6 @@ import com.ryzingtitan.crumbs.wear.R
 import com.ryzingtitan.crumbs.wear.viewmodel.WearNavigationViewModel
 import kotlinx.coroutines.delay
 
-private const val MAP_STYLE = "mapbox://styles/mapbox/dark-v10"
 private const val TRAIL_SOURCE_ID = "wear-trail-source"
 private const val TRAIL_LAYER_ID = "wear-trail-layer"
 
@@ -93,9 +98,11 @@ fun WearMapScreen(
         modifier = Modifier.fillMaxSize(),
     ) {
         MapboxMap(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape),
             mapViewportState = mapViewportState,
-            style = { MapStyle(style = MAP_STYLE) },
+            style = { MapStyle(style = """{"version":8,"sources":{},"layers":[]}""") },
             scaleBar = {},
             compass = {},
             logo = {},
@@ -115,6 +122,25 @@ fun WearMapScreen(
                     override fun onMove(detector: MoveGestureDetector): Boolean = false
                     override fun onMoveEnd(detector: MoveGestureDetector) {}
                 })
+                mapView.mapboxMap.getStyle { style ->
+                    style.addSource(rasterSource("usgs-topo") {
+                        tiles(listOf("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"))
+                        tileSize(256)
+                        maxzoom(16)
+                        attribution("Map services and data available from U.S. Geological Survey, National Geospatial Program")
+                    })
+                    style.addLayer(rasterLayer("usgs-topo-layer", "usgs-topo") {
+                        rasterColorMix(listOf(0.2126, 0.7152, 0.0722, 0.0))
+                        rasterColor(
+                            interpolate {
+                                linear()
+                                rasterValue()
+                                stop(0.0) { rgba(255.0, 255.0, 255.0, 1.0) }
+                                stop(1.0) { rgba(0.0, 0.0, 0.0, 1.0) }
+                            }
+                        )
+                    })
+                }
             }
 
             MapEffect(currentLocation) { _ ->
@@ -123,7 +149,7 @@ fun WearMapScreen(
                         mapViewportState.flyTo(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                                .zoom(17.0)
+                                .zoom(15.0)
                                 .bearing(0.0)
                                 .build()
                         )
@@ -211,7 +237,7 @@ fun WearMapScreen(
                         mapViewportState.flyTo(
                             CameraOptions.Builder()
                                 .center(Point.fromLngLat(loc.longitude, loc.latitude))
-                                .zoom(17.0)
+                                .zoom(15.0)
                                 .bearing(0.0)
                                 .build()
                         )
