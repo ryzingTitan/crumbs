@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -124,19 +125,10 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
         setContent {
             CrumbsWearTheme {
                 val navController: NavHostController = rememberSwipeDismissableNavController()
-                var isOnMapScreen by remember { mutableStateOf(false) }
-                DisposableEffect(navController) {
-                    val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                        isOnMapScreen = destination.route == ROUTE_MAP
-                    }
-                    navController.addOnDestinationChangedListener(listener)
-                    onDispose { navController.removeOnDestinationChangedListener(listener) }
-                }
 
                 SwipeDismissableNavHost(
                     navController = navController,
                     startDestination = ROUTE_LIST,
-                    userSwipeEnabled = !isOnMapScreen,
                 ) {
                     composable(ROUTE_LIST) {
                         WearRouteListScreen(
@@ -165,13 +157,12 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
                     }
 
                     composable(ROUTE_MAP) {
+                        BackHandler(enabled = true) { /* prevent swipe-to-dismiss */ }
                         WearMapScreen(
                             viewModel = viewModel,
                             onEndNavigation = { viewModel.endNavigation() },
                             onInfoTap = { navController.navigate(ROUTE_INFO) },
                         )
-
-                        // Watch for summary to navigate to summary screen
                         androidx.compose.runtime.LaunchedEffect(Unit) {
                             viewModel.navigationSummary.collect { summary ->
                                 if (summary != null) {
