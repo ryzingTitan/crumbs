@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -34,6 +35,7 @@ import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.compose.material.CompactButton
 import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.ListHeader
+import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
 import com.ryzingtitan.crumbs.wear.viewmodel.WearNavigationViewModel
 
@@ -135,6 +137,16 @@ fun WearRouteListScreen(
                             }
                         }
                     }
+                }
+                item {
+                    Text(
+                        text = "Map services and data available from U.S. Geological Survey, National Geospatial Program",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.caption3,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
                 }
             }
         }
