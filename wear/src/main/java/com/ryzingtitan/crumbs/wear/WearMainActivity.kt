@@ -125,10 +125,20 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
         setContent {
             CrumbsWearTheme {
                 val navController: NavHostController = rememberSwipeDismissableNavController()
+                var currentRoute by remember { mutableStateOf<String?>(null) }
+                DisposableEffect(navController) {
+                    val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                        currentRoute = destination.route
+                    }
+                    navController.addOnDestinationChangedListener(listener)
+                    onDispose { navController.removeOnDestinationChangedListener(listener) }
+                }
+                val swipeEnabled = currentRoute != ROUTE_MAP
 
                 SwipeDismissableNavHost(
                     navController = navController,
                     startDestination = ROUTE_LIST,
+                    userSwipeEnabled = swipeEnabled,
                 ) {
                     composable(ROUTE_LIST) {
                         WearRouteListScreen(
@@ -158,6 +168,7 @@ class WearMainActivity : ComponentActivity(), WearLocationService.LocationUpdate
 
                     composable(ROUTE_MAP) {
                         BackHandler(enabled = true) { /* prevent swipe-to-dismiss */ }
+
                         WearMapScreen(
                             viewModel = viewModel,
                             onEndNavigation = { viewModel.endNavigation() },
