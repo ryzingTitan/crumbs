@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.mapbox.maps.android)
     implementation(libs.mapbox.maps.compose)
+    implementation("androidx.fragment:fragment:1.8.9")
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
